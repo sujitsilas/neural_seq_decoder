@@ -1,4 +1,4 @@
-# Neural Speech Decoder - Ablation Study
+# Neural Speech Decoder
 
 4-model ablation study exploring data augmentation and training techniques for neural speech decoding. Based on 2024 BCI competition findings.
 
