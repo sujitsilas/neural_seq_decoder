@@ -24,6 +24,105 @@ class MeanDriftNoise(nn.Module):
         noise = torch.randn(1, C) * self.std
         return x + noise
 
+class TemporalJitterAugmentation(nn.Module):
+    """
+    Biologically-inspired temporal jitter augmentation for neural time-series.
+
+    Biological Motivation:
+    - Real neurons exhibit spike timing variability (±5-15ms jitter)
+    - Networks trained with temporal perturbations are more robust
+    - Inspired by Nature Communications 2024 research on SNNs
+
+    Randomly shifts time-series features by ±jitter_range timesteps during training.
+    Forces the network to learn time-invariant representations.
+
+    Args:
+        jitter_range (int): Maximum shift in timesteps (e.g., 2 means ±2 timesteps)
+        p (float): Probability of applying jitter (default: 1.0, always apply)
+    """
+    def __init__(self, jitter_range=2, p=1.0):
+        super().__init__()
+        self.jitter_range = jitter_range
+        self.p = p
+
+    def forward(self, x):
+        """
+        Args:
+            x: (batch, time, features) tensor
+        Returns:
+            Temporally jittered features
+        """
+        if not self.training or self.jitter_range == 0:
+            return x
+
+        # Apply jitter with probability p
+        if torch.rand(1).item() > self.p:
+            return x
+
+        batch_size, seq_len, n_features = x.shape
+        device = x.device
+
+        # Random shift per sample in batch: uniform(-jitter_range, +jitter_range)
+        shifts = torch.randint(
+            -self.jitter_range,
+            self.jitter_range + 1,
+            (batch_size,),
+            device=device
+        )
+
+        # Apply shifts using roll (circular shift to avoid boundary issues)
+        jittered = torch.zeros_like(x)
+        for i in range(batch_size):
+            jittered[i] = torch.roll(x[i], shifts=shifts[i].item(), dims=0)
+
+        return jittered
+
+
+class NeuralGainModulation(nn.Module):
+    """
+    Biologically-inspired neural gain modulation for context-dependent processing.
+
+    Biological Motivation:
+    - Cortical neurons modulate gain based on attention/arousal states
+    - Context-dependent gating enables multitask learning (2024 SNN research)
+    - Inspired by prefrontal cortex context gating mechanisms
+
+    Applies learnable day-specific (or context-specific) gain to scale features.
+    Mathematically: output = gain[context] ⊙ input
+
+    Args:
+        hidden_dim (int): Feature dimension
+        nContexts (int): Number of contexts (e.g., nDays=24)
+        init_gain (float): Initial gain value (default: 1.0)
+    """
+    def __init__(self, hidden_dim, nContexts, init_gain=1.0):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.nContexts = nContexts
+
+        # Learnable per-context gain: (nContexts, hidden_dim)
+        # Initialize near 1.0 for stability
+        self.gain = nn.Parameter(torch.ones(nContexts, hidden_dim) * init_gain)
+
+    def forward(self, x, context_idx):
+        """
+        Args:
+            x: (batch, time, hidden_dim) features
+            context_idx: (batch,) context indices (e.g., day indices)
+        Returns:
+            Gain-modulated features
+        """
+        # Select gain for each sample: (batch, hidden_dim)
+        batch_gain = torch.index_select(self.gain, 0, context_idx)
+
+        # Apply softplus to ensure positive gains (stable gradients)
+        batch_gain = F.softplus(batch_gain)
+
+        # Broadcast and multiply: (batch, time, hidden_dim)
+        # batch_gain is (batch, 1, hidden_dim) after unsqueeze
+        return x * batch_gain.unsqueeze(1)
+
+
 class GaussianSmoothing(nn.Module):
     """
     Apply gaussian smoothing on a
