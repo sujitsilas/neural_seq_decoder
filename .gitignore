@@ -163,3 +163,12 @@ cython_debug/
 competitionData/
 competitionData_readme.txt
 project.pdf
+
+
+# Checkpoints and other outputs
+checkpoints/
+plot/
+args
+*.png
+modelWeights
+trainingStats
