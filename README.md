@@ -7,9 +7,9 @@
 | Model | Architecture | Key Features | Best PER |
 |-------|-------------|--------------|----------|
 | **Model 1** | GRU Baseline | 5-layer GRU (1024 units) + Adam | **21.84%** |
-| **Model 2** | GRU + Training | SGD momentum + Coordinated dropout 10% | **19.66%** ✅ |
+| **Model 2** | GRU + Training | SGD momentum + Coordinated dropout 10% | **19.66%** |
 | **Model 3** | GRU + Log | Log transform + Layer normalization | **21.54%** |
-| **Model 4** | GRU + Delta | Log + Δ/ΔΔ features + SGD Nesterov + Dropout 15% | **19.75%** ✅ |
+| **Model 4** | GRU + Delta | Log + Δ/ΔΔ features + SGD Nesterov + Dropout 15% | **19.75%** |
 
 **Key Finding**: Training techniques (optimizer, LR schedule, regularization) outperformed architectural changes.
 
